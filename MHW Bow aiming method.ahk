@@ -1,154 +1,131 @@
-f9::
-  Suspend
-return
-
-
+#SingleInstance Force
 global Lmouse_time := 0
+global Rmouse_time := 0
 global Space_time := 0
+global V_time := 0
+Run, E:\MHW AHK\monster-hunter.ahk
+
 #IfWinActive ahk_exe MonsterHunterWorld.exe
 {
-  
-  track := 0
-  capslock::
-    send {ENTER down}
+  $*f9::
+    Suspend
     return
   
-  capslock Up::
-    send {ENTER up}
+  $*Space::
+    space()
+    KeyWait, Space
     return
   
-  LWin::return
-  RWin::return
-  f8::
-    WinClose, ahk_class ConsoleWindowClass ahk_exe HelloWorld-142-5-2-1543571672.exe
-    Run, C:\Users\Administrator\Desktop\MHW mods\HelloWorld-142-5-2-1543571672.exe
-    WinRestore, ahk_exe MonsterHunterWorld.exe
-    WinActivate, ahk_exe MonsterHunterWorld.exe
-    return
+  $*Space Up::space_up()
   
-  ;space
-  $*Space::Space()
-    ;~ send, {v down}
-    ;~ sleep 84
-    ;~ send, {SPACE down}
-    ;~ SoundBeep 523, 2
-    return
-  
-  
-  ;space up
-  ;~ *Space UP::
-    ;~ return
-  
-  
-  ;Lmouse button
-  *LButton::
+  $*LButton::
     send {ctrl down}
-    ;~ SoundBeep 523, 2
     return
   
-  
-  ;Rmouse button
   $*RButton::
     Send, {v down}
-    while (GetKeyState("RButton", "P")){
-      send, {NumpadAdd down}
-      sleep 50
-      send, {NumpadAdd up}
-      sleep 50
-      ;~ SoundBeep 523, 2
-    } 
+    SetTimer, rbutton, 0
     return
   
-  ;Lmouse button up
-  *LButton Up::LButton_UP()
-    ;~ Send, {v down}
-    ;~ sleep 1
-    MsgBox %A_ThisLabel%
-    send  {ctrl up}
-    ;~ SoundBeep 523, 2
-    ;~ setLmouse_time(295)
-    ;~ sleep, 300
-    ;~ if (GetKeyState("RButton", "P")){
-      ;~ return
-    ;~ }
-    ;~ Send, {v up}
+  $*LButton Up::lbutton_up()
+  
+  $*RButton Up::
+    setRmouse_time(500)
+    SetTimer, rbutton, off
+    SetTimer, v, 0
     return
-  
-  
-  ;Rmouse button up
-  *RButton Up::
-    if (GetKeyState("Space")){
-      return
-    }
-    Send, {v up}
-    return
-  
 }
 
-Space(){
-  send, {v down}
-  sleep 10
-  setSpace_time(90)
-  while (getSpace_time()){
-    if (!GetKeyState("Space", "P")){
-      ;~ SoundBeep 523, 2
-      break
-    }
-    sleep 17
-  }
-  send, {SPACE down}
-  if (GetKeyState("RButton", "P") or getLmouse_time()){
-      return
-    }
-  send, {v up}
-  send, {SPACE up}
-  ;~ SoundBeep 523, 2
-  KeyWait, Space
-}
-
-LButton_UP(){
-  LButton_state := false
+space(){
+  Hotkey, $*Space Up, On
+  Send, {space up}
   Send, {v down}
-  sleep 17
-  send  {ctrl up}
-  ;~ SoundBeep 523, 2
-  setLmouse_time(450)
-  
-  ;sleep for Lmouse_time, check if LButton is pressed and released
-  while (getLmouse_time()){
-    if GetKeyState("LButton", "P"){
-      LButton_state := true
-    }
-    else if (LButton_state and !GetKeyState("LButton", "P")){
-      return LButton_UP()
-    }
-    sleep 10
-  }
-  
-  if (GetKeyState("RButton", "P")){
-    return
-  }
-  Send, {v up}
+  setSpace_time(80)
+  SetTimer, space, 0
   return
 }
-  
-setLmouse_time(delay := 100){
-  ;~ MsgBox %A_TickCount% %delay%
+
+space_up(){
+  SetTimer, space, off
+  send, {space down}
+  sleep 1
+  send, {space up}
+  setV_time(600)
+  SetTimer, v, 0
+  return
+}
+
+space:
+  if (!getSpace_time()){
+    Hotkey, $*Space Up, off
+    space_up()
+  }
+  return
+
+lbutton_up(){
+  SetTimer, lbutton, off
+  if !(getRmouse_time()){
+    Send, {v down}
+  }
+  send {ctrl up}
+  setLmouse_time(17)
+  setV_time(17)
+  SetTimer, lbutton, 0
+  return
+}
+
+lbutton:
+  if (!getLmouse_time()){
+    SetTimer, lbutton, off
+    setV_time(700)
+    SetTimer, v, 0
+  }
+  return
+
+rbutton:
+  setV_time(70)
+  send, {NumpadAdd down}
+  send, {NumpadAdd up}
+  return
+
+v:
+  if (!getV_time()){
+    SetTimer, v, Off
+    send, {v up}
+  }
+  return
+
+setLmouse_time(delay){
   global Lmouse_time := A_TickCount + delay
   return
 }
-
 getLmouse_time(){
-  ;~ Lmouse_time := global Lmouse_time
-  ;~ MsgBox %Lmouse_time%
   return global Lmouse_time > A_TickCount
 }
 
-setSpace_time(delay := 100){
+setRmouse_time(delay){
+  global Rmouse_time := A_TickCount + delay
+  return
+}
+getRmouse_time(){
+  return global Rmouse_time > A_TickCount
+}
+
+setSpace_time(delay){
   global Space_time := A_TickCount + delay
   return
 }
-
 getSpace_time(){
   return global Space_time > A_TickCount
 }
+
+setV_time(delay){
+  if (A_TickCount + delay > global V_time){
+    global V_time := A_TickCount + delay
+  }
+  return
+}
+getV_time(){
+  return global V_time > A_TickCount
+}
+  
