@@ -1,131 +1,162 @@
+#NoEnv
+Process, Priority, , H
+SetBatchLines, -1
+ListLines Off
+#KeyHistory 0
+SetTitleMatchMode 2
+SetTitleMatchMode Fast
+;~ SetKeyDelay, -1, -1, Play
+;~ SetMouseDelay, -1
+;~ SetWinDelay, 0		; Changed to 0 upon recommendation of documentation
+;~ SetControlDelay, 0	; Changed to 0 upon recommendation of documentation
+;~ SetDefaultMouseSpeed, 0
 #SingleInstance Force
-global Lmouse_time := 0
+
+;~ global Lmouse_time := 0
 global Rmouse_time := 0
-global Space_time := 0
+;~ global Space_time := 0
 global V_time := 0
-Run, E:\MHW AHK\monster-hunter.ahk
+;~ global V_start := 0
+global V_persist := false
 
 #IfWinActive ahk_exe MonsterHunterWorld.exe
 {
-  $*f9::
-    Suspend
-    return
-  
-  $*Space::
-    space()
-    KeyWait, Space
-    return
-  
-  $*Space Up::space_up()
-  
-  $*LButton::
-    send {ctrl down}
-    return
-  
-  $*RButton::
-    Send, {v down}
-    SetTimer, rbutton, 0
-    return
-  
-  $*LButton Up::lbutton_up()
-  
-  $*RButton Up::
-    setRmouse_time(500)
-    SetTimer, rbutton, off
-    SetTimer, v, 0
-    return
+    Run, E:\MHW AHK\monster-hunter.ahk
+    
+    Suspend, On
+    
+    $*f9::
+        Suspend
+        return
+        
+	$*Space::
+        Hotkey, $*Space Up, On          ;re-enables space up hotkey
+        Send, {space up}                ;release the space key upon pressing space, otherwise it jams with spam
+        Send, {v down}
+        if (!getV_time()){              ;determines the correct delay for sending space down to compensate game mechanic
+            SetTimer, space_up, -16
+        }else  {
+            gosub, space_up
+        }
+        KeyWait, Space                  ;prevent auto-repeat of space key while holding space, works while #MaxThreads = 1 (default)
+        return
+        
+	$*Space Up::
+        gosub, space_up
+        return
+        
+	$*LButton::
+        send {NumpadSub up}
+        send {NumpadSub down}
+        return
+        
+	$*LButton Up::
+        if !(getRmouse_time()){         ;only send v when a certain amount of time has passed after the release of RButton
+            Send, {v down}
+        }
+        setV_time(280)
+        SetTimer, lbutton, -16          ;delay for releasing LButton to compensate game mechanic
+        return
+        
+	$*RButton::
+        Send, {v down}
+        send, {NumpadAdd down}
+        SetTimer, rbutton, 34           ;rapid fire routine that repeats every 2/60 seconds (2 frames)
+        setV_persist(true)              ;prevents "v" routine from releasing v while rapid fire is on
+        return
+        
+	$*RButton Up::
+        SetTimer, rbutton, off
+        send, {NumpadAdd up}
+        setRmouse_time(500)
+        setV_persist(false)
+        setV_time(100)
+        return
+    
+    ;~ $*s::
+        ;~ Send, {s down}
+        ;~ Send, {v down}
+        ;~ setV_persist(true)
+        ;~ KeyWait, s
+        ;~ return
+    
+    ;~ $*s Up::
+        ;~ Send, {s up}
+        ;~ setV_persist(false)
+        ;~ setV_time(100)
+        ;~ return
+    
+	$*c::
+        send, {v up}
+        KeyWait, c
+        return
 }
-
-space(){
-  Hotkey, $*Space Up, On
-  Send, {space up}
-  Send, {v down}
-  setSpace_time(80)
-  SetTimer, space, 0
-  return
-}
-
-space_up(){
-  SetTimer, space, off
-  send, {space down}
-  sleep 1
-  send, {space up}
-  setV_time(600)
-  SetTimer, v, 0
-  return
-}
+    
+space_up:                               ;timed/hotkey routine, most of the code is to maintain mutex of the two methods of calling this routine, per space press/release
+    SetTimer, space_up, off
+    send, {space down}
+    setV_time(406)
+    settimer, space, -16
+    Hotkey, $*Space Up, off             ;prevents this routine from running twice in one key press
+	return
 
 space:
-  if (!getSpace_time()){
-    Hotkey, $*Space Up, off
-    space_up()
-  }
-  return
-
-lbutton_up(){
-  SetTimer, lbutton, off
-  if !(getRmouse_time()){
-    Send, {v down}
-  }
-  send {ctrl up}
-  setLmouse_time(17)
-  setV_time(17)
-  SetTimer, lbutton, 0
-  return
-}
+    send, {space up}
+	return
 
 lbutton:
-  if (!getLmouse_time()){
-    SetTimer, lbutton, off
-    setV_time(700)
-    SetTimer, v, 0
-  }
-  return
+    send {NumpadSub up}
+	return
 
 rbutton:
-  setV_time(70)
-  send, {NumpadAdd down}
-  send, {NumpadAdd up}
-  return
+    send, {NumpadAdd down}
+    send, {NumpadAdd up}
+	return
 
-v:
-  if (!getV_time()){
-    SetTimer, v, Off
-    send, {v up}
-  }
-  return
+v:                                      ;timed subroutine to release v key, as long as no RF routine is on
+    if (not global V_persist){
+        send, {v up}
+    }
+	return
 
-setLmouse_time(delay){
-  global Lmouse_time := A_TickCount + delay
-  return
+setV_persist(persist){
+    global V_persist := persist
+    return
 }
-getLmouse_time(){
-  return global Lmouse_time > A_TickCount
-}
+
+;~ setLmouse_time(delay){
+    ;~ global Lmouse_time := A_TickCount + delay
+    ;~ return
+;~ }
+;~ getLmouse_time(){
+    ;~ return global Lmouse_time > A_TickCount
+;~ }
 
 setRmouse_time(delay){
-  global Rmouse_time := A_TickCount + delay
-  return
+    global Rmouse_time := A_TickCount + delay
+    return
 }
 getRmouse_time(){
-  return global Rmouse_time > A_TickCount
+    return global Rmouse_time > A_TickCount
 }
 
-setSpace_time(delay){
-  global Space_time := A_TickCount + delay
-  return
-}
-getSpace_time(){
-  return global Space_time > A_TickCount
-}
+;~ setSpace_time(delay){
+    ;~ global Space_time := A_TickCount + delay
+    ;~ return
+;~ }
+;~ getSpace_time(){
+    ;~ return global Space_time > A_TickCount
+;~ }
 
-setV_time(delay){
-  if (A_TickCount + delay > global V_time){
-    global V_time := A_TickCount + delay
-  }
-  return
+setV_time(delay){                      ;
+    if (A_TickCount + delay > global V_time){
+        global V_time := A_TickCount + delay
+        SetTimer, v, -%delay%
+    }
+    return
 }
 getV_time(){
-  return global V_time > A_TickCount
-}
-  
+    if GetKeyState("v","P")
+        return true
+    return global V_time > A_TickCount
+}              
